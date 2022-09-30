@@ -37,6 +37,7 @@ func (c *Room) start(conn net.Conn) {
 			if err != nil {
 				// handle error
 				//	log.Printf("%v:%v error: %v\n", ip, port, err)
+				delete(c.clients, conn.RemoteAddr())
 				err = conn.Close()
 				log.Printf("%v closing on message read, %v\n", conn.RemoteAddr(), err)
 				return
@@ -48,6 +49,8 @@ func (c *Room) start(conn net.Conn) {
 					err = wsutil.WriteServerMessage(cn, op, msg)
 					if err != nil {
 						log.Printf("%v closing on write: %v\n", conn.RemoteAddr(), err)
+						delete(c.clients, conn.RemoteAddr())
+						err = conn.Close()
 						break
 					}
 				}
