@@ -88,7 +88,10 @@ export default {
         }
       }
 
-      this.pc.createDataChannel("sendChannel")
+      const dc = this.pc.createDataChannel("sendChannel")
+      dc.onopen = () => {
+        dc.send("open, send hello!")
+      }
     },
 
     async makeCall() {
