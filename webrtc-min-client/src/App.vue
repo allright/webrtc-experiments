@@ -54,6 +54,8 @@ export default {
     },
 
 
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Simple_RTCDataChannel_sample
+    // DataChannel example
     createPeerConnection() {
       this.pc = new RTCPeerConnection();
       this.pc.onicecandidate = e => {
@@ -71,6 +73,22 @@ export default {
       const remoteVideo = this.$refs.remoteVideo
       this.pc.ontrack = e => remoteVideo.srcObject = e.streams[0];
       this.localStream.getTracks().forEach(track => this.pc.addTrack(track, this.localStream));
+
+      this.pc.ondatachannel = (event) => {
+        console.log("on data channel:", event)
+        const rcvChannel = event.channel
+        rcvChannel.onmessage = (msg) => {
+          console.log("onmessage:", msg)
+        }
+        rcvChannel.onopen = (event) => {
+          console.log("onopen:", event)
+        }
+        rcvChannel.onclose = (event) => {
+          console.log("onopen:", event)
+        }
+      }
+
+      this.pc.createDataChannel("sendChannel")
     },
 
     async makeCall() {
