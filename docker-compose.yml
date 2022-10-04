@@ -12,6 +12,9 @@ services:
     #         soft: 100000
     #         hard: 100000
     #     restart: always
+    signal_server:
+      build: ./WebRTCSignal
+
 
     nginx:
         image: nginx:1.23.1-alpine
