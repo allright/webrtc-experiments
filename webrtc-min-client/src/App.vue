@@ -179,7 +179,8 @@ export default {
   mounted() {
     const room = location.href.substring(location.href.lastIndexOf('/') + 1)
     console.log("room:", room);
-    const url = "wss://localhost:8443/ws/" + room
+    //const url = "wss://localhost:8443/ws/" + room
+    const url = "wss://" + window.location.hostname + ":8443/ws/" + room
     console.log("connect:", url);
     this.websocket = new WebSocket(url)
     this.websocket.addEventListener('open', () => this.start());
