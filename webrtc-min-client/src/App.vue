@@ -82,16 +82,16 @@ export default {
         console.log("on data channel:", event)
         const rcvChannel = event.channel
         rcvChannel.onmessage = (event) => {
-       //   console.log("onmessage:", event)
-          const time = new Date()
+          const time = new Date().getTime()
           const msg = JSON.parse(event.data)
+          console.log("[" + time + "] onmessage:", msg)
           switch (msg.msg) {
             case "ping": {
               const pong = {
                 "msg": "pong",
                 "ping_id": msg.id,
                 "ping_ts": msg.timestamp,
-                "timestamp": time.getTime()
+                "timestamp": time
               }
           //    console.log("send pong:", pong)
               this.dc.send(JSON.stringify(pong))
@@ -104,7 +104,7 @@ export default {
               this.nextPingWaitingCount = msg.ping_id + 1
               const diffTS = msg.ping_ts - this.prevRecvTS
               this.prevRecvTS = msg.ping_ts
-              console.log("latency (id:" +  msg.ping_id + ", lost: " + delta_ping_num + ", delta_ping: " + delta_ms + ", diff: " + diffTS + ")")
+              console.log("[" + time + "] latency (id:" +  msg.ping_id + ", ping_ts: " + msg.ping_ts + ", pong_ts:" + msg.timestamp + ", lost: " + delta_ping_num + ", delta_ping: " + delta_ms + ", diff: " + diffTS + ")")
             }
               break
 
@@ -121,17 +121,18 @@ export default {
 
       this.dc = this.pc.createDataChannel("sendChannel")
       this.dc.onopen = () => {
-        setInterval(this.sendPing, 10)
+        setInterval(this.sendPing, 1000)
+        //this.sendPing()
       }
     },
 
     sendPing() {
-      const time = new Date()
+      const time = new Date().getTime()
    //   console.log("ping", time, time.getTime())
       const ping = {
         "msg": "ping",
         "id": this.pingCount++,
-        "timestamp": time.getTime()
+        "timestamp": time
       }
       this.dc.send(JSON.stringify(ping))
     },
