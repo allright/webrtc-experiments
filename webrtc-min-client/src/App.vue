@@ -15,7 +15,8 @@ export default {
       localStream: null,
       pc: null,
       dc: null,
-      pingCount: 0
+      pingCount: 0,
+      nextPingWaitingCount: 0
     }
   },
   methods: {
@@ -98,7 +99,9 @@ export default {
 
             case "pong": {
               const delta_ms = time - msg.ping_ts
-              console.log("ping_delta:", delta_ms)
+              const delta_ping_num = msg.ping_id - this.nextPingWaitingCount
+              this.nextPingWaitingCount = msg.ping_id + 1
+              console.log("recv pong(id:" +  msg.ping_id + ", lost: " + delta_ping_num + ", delta: " + delta_ms + ")")
             }
               break
 
@@ -114,7 +117,9 @@ export default {
       }
 
       this.dc = this.pc.createDataChannel("sendChannel")
-      this.dc.onopen = this.sendPing
+      this.dc.onopen = () => {
+        setInterval(this.sendPing, 1000)
+      }
     },
 
     sendPing() {
