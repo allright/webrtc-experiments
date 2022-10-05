@@ -13,7 +13,8 @@ export default {
     return {
       websocket: null,
       localStream: null,
-      pc: null
+      pc: null,
+      dc: null
     }
   },
   methods: {
@@ -77,8 +78,30 @@ export default {
       this.pc.ondatachannel = (event) => {
         console.log("on data channel:", event)
         const rcvChannel = event.channel
-        rcvChannel.onmessage = (msg) => {
-          console.log("onmessage:", msg)
+        rcvChannel.onmessage = (event) => {
+          console.log("onmessage:", event)
+          const time = new Date()
+          const msg = JSON.parse(event.data)
+          switch (msg.msg) {
+            case "ping": {
+              const pong = {
+                "msg": "pong",
+                "ping_ts": msg.timestamp,
+                "timestamp": time.getTime()
+              }
+              console.log("send pong:", pong)
+              this.dc.send(JSON.stringify(pong))
+            }
+              break
+
+            case "pong": {
+              const delta_ms = time - msg.ping_ts
+              console.log("ping_delta:", delta_ms)
+            }
+              break
+
+          }
+
         }
         rcvChannel.onopen = (event) => {
           console.log("onopen:", event)
@@ -88,9 +111,15 @@ export default {
         }
       }
 
-      const dc = this.pc.createDataChannel("sendChannel")
-      dc.onopen = () => {
-        dc.send("open, send hello!")
+      this.dc = this.pc.createDataChannel("sendChannel")
+      this.dc.onopen = () => {
+        const time = new Date()
+        console.log("ping", time, time.getTime())
+        const ping = {
+          "msg": "ping",
+          "timestamp": time.getTime()
+        }
+        this.dc.send(JSON.stringify(ping))
       }
     },
 
