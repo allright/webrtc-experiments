@@ -16,7 +16,8 @@ export default {
       pc: null,
       dc: null,
       pingCount: 0,
-      nextPingWaitingCount: 0
+      nextPingWaitingCount: 0,
+      prevRecvTS: new Date().getTime()
     }
   },
   methods: {
@@ -101,7 +102,9 @@ export default {
               const delta_ms = time - msg.ping_ts
               const delta_ping_num = msg.ping_id - this.nextPingWaitingCount
               this.nextPingWaitingCount = msg.ping_id + 1
-              console.log("latency (id:" +  msg.ping_id + ", lost: " + delta_ping_num + ", delta: " + delta_ms + ")")
+              const diffTS = msg.ping_ts - this.prevRecvTS
+              this.prevRecvTS = msg.ping_ts
+              console.log("latency (id:" +  msg.ping_id + ", lost: " + delta_ping_num + ", delta_ping: " + delta_ms + ", diff: " + diffTS + ")")
             }
               break
 
@@ -180,7 +183,8 @@ export default {
     const room = location.href.substring(location.href.lastIndexOf('/') + 1)
     console.log("room:", room);
     //const url = "wss://localhost:8443/ws/" + room
-    const url = "wss://" + window.location.hostname + ":8443/ws/" + room
+    console.log(window.location)
+    const url = "wss://" + window.location.host + "/ws/" + room
     console.log("connect:", url);
     this.websocket = new WebSocket(url)
     this.websocket.addEventListener('open', () => this.start());
