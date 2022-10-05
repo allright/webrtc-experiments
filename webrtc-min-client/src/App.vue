@@ -7,6 +7,7 @@
 
 <script>
 
+
 export default {
   name: 'App',
   data() {
@@ -15,6 +16,7 @@ export default {
       localStream: null,
       pc: null,
       dc: null,
+      randomId: '',
       pingCount: 0,
       nextPingWaitingCount: 0,
       prevRecvTS: new Date().getTime()
@@ -23,6 +25,7 @@ export default {
   methods: {
 
     send(msg) {
+      msg.userId = this.randomId
       console.log("send:", msg)
       this.websocket.send(JSON.stringify(msg))
     },
@@ -57,11 +60,46 @@ export default {
       }
     },
 
+    // private val defaultIceServers
+    //   = arrayListOf(
+    //   IceServer(arrayListOf("stun:92.38.139.174:3478")),
+    //   IceServer(arrayListOf("turn:92.38.139.174:3478?transport=udp","turn:92.38.139.174:3478?transport=tcp"),
+    //       "ninefingers","youhavetoberealistic"))
 
     // https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Simple_RTCDataChannel_sample
     // DataChannel example
     createPeerConnection() {
-      this.pc = new RTCPeerConnection();
+      const pcOptions = {
+        iceServers:
+            [{"urls":"stun:90.156.203.62:3478"},
+          {
+            urls: "turn:90.156.203.62:3478",
+            username: "ninefingers",
+            credential: "youhavetoberealistic",
+          }]
+        //
+        // iceServers: [
+        //   {
+        //     urls: "stun:openrelay.metered.ca:80",
+        //   },
+        //   {
+        //     urls: "turn:openrelay.metered.ca:80",
+        //     username: "openrelayproject",
+        //     credential: "openrelayproject",
+        //   },
+        //   {
+        //     urls: "turn:openrelay.metered.ca:443",
+        //     username: "openrelayproject",
+        //     credential: "openrelayproject",
+        //   },
+        //   {
+        //     urls: "turn:openrelay.metered.ca:443?transport=tcp",
+        //     username: "openrelayproject",
+        //     credential: "openrelayproject",
+        //   },
+        // ],
+      }
+      this.pc = new RTCPeerConnection(pcOptions);
       this.pc.onicecandidate = e => {
         const message = {
           type: 'candidate',
@@ -84,17 +122,20 @@ export default {
         rcvChannel.onmessage = (event) => {
           const time = new Date().getTime()
           const msg = JSON.parse(event.data)
-          console.log("[" + time + "] onmessage:", msg)
+          // console.log("[" + time + "] onmessage:", msg)
           switch (msg.msg) {
             case "ping": {
               const pong = {
                 "msg": "pong",
                 "ping_id": msg.id,
                 "ping_ts": msg.timestamp,
-                "timestamp": time
+                "timestamp": time,
+                "userId": this.randomId
               }
-          //    console.log("send pong:", pong)
-              this.dc.send(JSON.stringify(pong))
+              // console.log("send pong this.dc.readyState", this.dc.readyState)
+              if (this.dc.readyState === "open") {
+                this.dc.send(JSON.stringify(pong))
+              }
             }
               break
 
@@ -104,7 +145,7 @@ export default {
               this.nextPingWaitingCount = msg.ping_id + 1
               const diffTS = msg.ping_ts - this.prevRecvTS
               this.prevRecvTS = msg.ping_ts
-              console.log("[" + time + "] latency (id:" +  msg.ping_id + ", ping_ts: " + msg.ping_ts + ", pong_ts:" + msg.timestamp + ", lost: " + delta_ping_num + ", delta_ping: " + delta_ms + ", diff: " + diffTS + ")")
+              console.log("[" + this.randomId + ":" + time + "] latency (userId:" + msg.userId + " id:" + msg.ping_id + ", ping_ts: " + msg.ping_ts + ", pong_ts:" + msg.timestamp + ", lost: " + delta_ping_num + ", delta_ping: " + delta_ms + ", diff: " + diffTS + ")")
             }
               break
 
@@ -119,21 +160,22 @@ export default {
         }
       }
 
-      this.dc = this.pc.createDataChannel("sendChannel")
+      const options = {ordered:false, maxRetransmits:0}
+      this.dc = this.pc.createDataChannel("sendChannel",options)
       this.dc.onopen = () => {
-        setInterval(this.sendPing, 1000)
-        //this.sendPing()
+        setInterval(this.sendPing.bind(this), 10)
       }
     },
 
     sendPing() {
       const time = new Date().getTime()
-   //   console.log("ping", time, time.getTime())
       const ping = {
         "msg": "ping",
         "id": this.pingCount++,
-        "timestamp": time
+        "timestamp": time,
+        "userId": this.randomId
       }
+      // console.log("ping", ping)
       this.dc.send(JSON.stringify(ping))
     },
 
@@ -181,6 +223,7 @@ export default {
   },
 
   mounted() {
+    this.randomId = (Math.random() + 1).toString(36).substring(7)
     const room = location.href.substring(location.href.lastIndexOf('/') + 1)
     console.log("room:", room);
     //const url = "wss://localhost:8443/ws/" + room
